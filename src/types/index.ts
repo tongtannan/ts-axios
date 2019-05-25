@@ -1,4 +1,5 @@
 import { rejects } from "assert";
+import { transformRequest, transformResponse } from "../helpers/data";
 
 export type Method = 'get' | 'GET' | 'delete' | 'DELETE' | 'head' | 'HEAD' | 'options' | 'options' | 'post' | 'POST' |
                       'put' | 'PUT' | 'patch' | 'PATCH'
@@ -12,6 +13,11 @@ export interface AxiosRequestConfig {
     headers?: any
     responseType?: XMLHttpRequestResponseType
     timeout?: number
+    transformRequest?: AxiosTransformer | AxiosTransformer[]
+    transformResponse?: AxiosTransformer | AxiosTransformer[]
+    cancelToken?: CancelToken
+    //字符串索引签名
+    [propName: string]: any
 }
 //响应数据支持泛型
 export interface AxiosResponse<T=any> {
@@ -36,6 +42,7 @@ export interface AxiosError extends Error {
 }
 
 export interface Axios {
+    defaults: AxiosRequestConfig
     interceptors: {
         request: AxiosInterceptorManager<AxiosRequestConfig>
         response: AxiosInterceptorManager<AxiosResponse>
@@ -56,6 +63,14 @@ export interface AxiosInstance extends Axios{
     <T=any>(url: string, config?: AxiosRequestConfig): AxiosPromise<T>
 }
 
+export interface AxiosStatic extends AxiosInstance {
+    create(config?: AxiosRequestConfig): AxiosInstance
+
+    CancelToken: CancelTokenStatic
+    Cancel: CancelStatic
+    isCancel: (value: any) => boolean
+}
+
 export interface AxiosInterceptorManager<T> {
     use(resolved: ResolvedFn<T>, rejected?: RejectedFn): number
 
@@ -67,4 +82,40 @@ export interface ResolvedFn<T=any> {
 }
 export interface RejectedFn {
     (error: any): any
+}
+
+export interface AxiosTransformer {
+    (data: any, headers?: any): any
+}
+
+export interface CancelToken {
+    promise: Promise<Cancel>
+    reason?: Cancel
+
+    throwIfRequested(): void
+}
+//取消方法
+export interface Canceler {
+    (message?: string): void
+}
+//传给calceltoken构造函数参数类型
+export interface CancelExecutor {
+    (cancel: Canceler): void
+}
+//canceltoken通过source方法返回对象
+export interface CancelTokenSource {
+    token: CancelToken
+    cancel: Canceler
+}
+//canceltoken类的类型
+export interface CancelTokenStatic {
+    new(executor: CancelExecutor): CancelToken
+    Source(): CancelTokenSource
+}
+//cancel类，cancel类的类型
+export interface Cancel {
+    message?: string
+}
+export interface CancelStatic {
+    new(message?: string): Cancel
 }
