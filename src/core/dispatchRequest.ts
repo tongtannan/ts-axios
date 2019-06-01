@@ -1,6 +1,6 @@
 import { AxiosRequestConfig, AxiosPromise, AxiosResponse } from '../types'
 import xhr from './xhr'
-import { buildRUL } from '../helpers/url'
+import { buildRUL, isAbsoluteURL, combineURL } from '../helpers/url'
 import { transformRequest, transformResponse } from '../helpers/data'
 import { processHeasers, flattenHeaders} from '../helpers/headers'
 import transform from './transform'
@@ -21,10 +21,13 @@ function processConfig(config:AxiosRequestConfig): void {
     config.headers = flattenHeaders(config.headers, config.method!)
 }
 //处理url
-function transformURL(config:AxiosRequestConfig): string {
-    const {url, params} = config
+export function transformURL(config:AxiosRequestConfig): string {
+    let {url, params, paramsSerializer, baseURL} = config
+    if (baseURL && !isAbsoluteURL(url!)) {
+        url = combineURL(baseURL, url)
+    }
     //类型断言url不为空
-    return buildRUL(url!, params)
+    return buildRUL(url!, params, paramsSerializer)
 }
 
 // function transformRequestData(config:AxiosRequestConfig): any {

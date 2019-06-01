@@ -1,4 +1,9 @@
-import { isDate, isPlainObject} from './util'
+import { isDate, isPlainObject, isURLSearchParams} from './util'
+
+interface URLOrigin {
+    protocol: string
+    host: string
+}
 
 function encode(val:string): string {
     return encodeURIComponent(val)
@@ -11,36 +16,44 @@ function encode(val:string): string {
     .replace(/%5D/gi, ']')
 }
 
-export function buildRUL(url: string, params?: any): string {
+export function buildRUL(url: string, params?: any, paramsSerializer?: (params: any) => string): string {
     if (!params) {
         return url
     }
 
-    const parts: string[] = []
+    let serializeParams
 
-    Object.keys(params).forEach((key) => {
-        const val = params[key]
-        if (val === null || typeof val === 'undefined') {
-            return
-        }
-        let values = []
-        if (Array.isArray(val)) {
-            values = val
-            key += '[]'
-        } else {
-            values = [val]
-        }
-        values.forEach((val) => {
-            if (isDate(val)) {
-                val = val.toISOString()
-            } else if (isPlainObject(val)) {
-                val = JSON.stringify(val)
+    if (paramsSerializer) {
+        serializeParams = paramsSerializer(params)
+    } else if (isURLSearchParams(params)) {
+        serializeParams = params.toString()
+    } else {
+        const parts: string[] = []
+    
+        Object.keys(params).forEach((key) => {
+            const val = params[key]
+            if (val === null || typeof val === 'undefined') {
+                return
             }
-            parts.push(`${encode(key)}=${encode(val)}`)
+            let values = []
+            if (Array.isArray(val)) {
+                values = val
+                key += '[]'
+            } else {
+                values = [val]
+            }
+            values.forEach((val) => {
+                if (isDate(val)) {
+                    val = val.toISOString()
+                } else if (isPlainObject(val)) {
+                    val = JSON.stringify(val)
+                }
+                parts.push(`${encode(key)}=${encode(val)}`)
+            })
         })
-    })
-
-    let serializeParams = parts.join('&')
+    
+        serializeParams = parts.join('&')
+    }
 
     if (serializeParams) {
         const markIndex = url.indexOf('#')
@@ -50,4 +63,26 @@ export function buildRUL(url: string, params?: any): string {
         url += (url.indexOf('?') === -1 ? '?' : '&') + serializeParams
     }
     return url
+}
+//是否绝对地址
+export function isAbsoluteURL(url: string): boolean {
+    return /(^[a-z][a-z\d\+\-\.]*:)?\/\//i.test(url)
+}
+export function combineURL(baseURL: string, relativeURL?: string): string{
+    return relativeURL ? baseURL.replace(/\/+$/,'') + '/' + relativeURL.replace(/^\/+/,'') : baseURL
+}
+
+export function isURLSameOrigin(requestURL: string): boolean {
+    const parsedOrigin = resolveRUL(requestURL)
+    return (parsedOrigin.protocol === currentOrigin.protocol && parsedOrigin.host === currentOrigin.host)
+}
+const urlParsingNode = document.createElement('a')
+const currentOrigin = resolveRUL(window.location.href)
+function resolveRUL(url: string): URLOrigin {
+    urlParsingNode.setAttribute('href', url)
+    const {protocol, host} = urlParsingNode
+    return {
+        protocol,
+        host
+    }
 }
