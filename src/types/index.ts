@@ -130,7 +130,7 @@ export interface CancelTokenSource {
 //canceltoken类的类型
 export interface CancelTokenStatic {
     new(executor: CancelExecutor): CancelToken
-    Source(): CancelTokenSource
+    source(): CancelTokenSource
 }
 //cancel类，cancel类的类型
 export interface Cancel {
